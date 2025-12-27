@@ -167,10 +167,21 @@ fn check_equality_of_list(
         len_ops.push(len_op);
     }
 
-    // check types are all the same
-    // e.g. Int/Float/List
+    // Check if all types are the same or are all numeric.
+    // If the outer type is a List, check the inner type.
     let first_type = &types[0];
-    let check_type_pass = types.iter().all(|e| e == first_type);
+    let check_type_pass = if types.iter().all(|e| e.is_list()) {
+        types.iter().all(|e| {
+            if let (Type::List(x), Type::List(t)) = (first_type, e) {
+                x.is_numeric() && t.is_numeric() || x == t
+            } else {
+                e == first_type
+            }
+        })
+    } else {
+        types.iter().all(|e| e == first_type)
+            || (types.iter().all(|e| e.is_numeric()) && first_type.is_numeric())
+    };
 
     if !check_type_pass {
         return Err(LabeledError::new("Can't plot a list of multiple types.").with_label("Type differences.", call.head) );
